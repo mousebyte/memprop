@@ -1,0 +1,5 @@
+compile_commands.json
+uncrustify.cfg
+build/
+.ccls-cache/
+.cs_files
