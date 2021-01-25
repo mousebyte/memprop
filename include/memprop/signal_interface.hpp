@@ -1,6 +1,6 @@
 #ifndef MB_SIGNAL_IX_HPP
 #define MB_SIGNAL_IX_HPP
-#include "sigslot/signal.hpp"
+#include <sigslot/signal.hpp>
 #include <optional>
 
 namespace mousebyte {
