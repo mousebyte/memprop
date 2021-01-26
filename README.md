@@ -1,5 +1,5 @@
 # memprop
-Memprop is a member property implementation suitable for use in UI libraries. Features change notifications, access control, and bindings.
+Memprop is a member property implementation suitable for use in UI libraries. Features change notifications, access control, and bindings. Requires a compiler with C++20 Concepts support.
 
 ## Usage
 ### Public properties
