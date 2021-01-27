@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/Catch2/extras/")
 project("memprop" VERSION 1.0.0 LANGUAGES CXX)
 option(SIGSLOT_COMPILE_EXAMPLES "" OFF)
 option(SIGSLOT_COMPILE_TESTS "" OFF)
@@ -48,4 +49,10 @@ if(MEMPROP_COMPILE_TESTS)
     add_subdirectory(lib/Catch2)
     add_executable(memprop_tests tests/tests.cpp)
     target_link_libraries(memprop_tests PRIVATE Catch2::Catch2WithMain Mousebyte::memprop)
+    include(CTest)
+    include(Catch)
+    catch_discover_tests(memprop_tests)
+    add_custom_command(TARGET memprop_tests
+                       POST_BUILD
+                       COMMAND ctest --output-on-failure)
 endif()
