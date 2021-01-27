@@ -12,6 +12,9 @@
 
 namespace mousebyte {
     namespace memprop {
+        /**
+         * @brief Provides access to a property binding.
+         */
         class binding {
         protected:
             sigslot::connection _connection;
@@ -23,11 +26,20 @@ namespace mousebyte {
             binding& operator=(binding const&) = delete;
             binding& operator=(binding&&)      = delete;
 
+            /**
+             * @brief Checks if the binding is active.
+             *
+             * @return True if the binding is active, false
+             * if the binding has been disconnected.
+             */
             bool active() const
                 {
                 return _connection.connected();
                 }
 
+            /**
+             * @brief Disconnects the binding.
+             */
             void disconnect()
                 {
                 _connection.disconnect();
@@ -657,6 +669,13 @@ namespace mousebyte {
             } // namespace detail
 
 
+        /**
+         * @brief Exposes a property whose value is computed each time it is accessed.
+         *
+         * @tparam Owner The type that contains the property.
+         * @tparam V The value type.
+         * @tparam Get A pointer to the member function of Owner that gets the value.
+         */
         template <typename Owner, typename V, detail::mem_getter<Owner, V> Get>
         class computed_property
             : public detail::gettable_prop<computed_property<Owner, V, Get>> {
@@ -697,11 +716,21 @@ namespace mousebyte {
                 return this->get();
                 }
 
+            /**
+             * @brief Removes the binding from this property, if one exists.
+             */
             void unbind()
                 {
                 this->reset_binding();
                 }
 
+            /**
+             * @brief Binds this property to the value of another property.
+             *
+             * @param src The source property.
+             *
+             * @return A handle to the binding.
+             */
             template <typename PSrc>
             requires detail::PropertyConvertible<PSrc, my_type>
             std::shared_ptr<binding> bind(
@@ -711,6 +740,17 @@ namespace mousebyte {
                 return this->bind_internal(&src);
                 }
 
+            /**
+             * @brief Binds this property to the value of another property
+             * using the given converter object.
+             *
+             * @param src The source property.
+             * @param converter The converter object. Must be a functor that accepts
+             * a const reference to the source's value type and returns the target's
+             * value type.
+             *
+             * @return A handle to the binding.
+             */
             template <typename PSrc, typename Converter>
             requires detail::ValidConverter<PSrc, my_type, Converter>
             std::shared_ptr<binding> bind(
@@ -833,6 +873,13 @@ namespace mousebyte {
         };
 
 
+        /**
+         * @brief Exposes a property with a public getter and setter.
+         *
+         * @tparam Owner The type that contains the property.
+         * @tparam V The value type.
+         * @tparam Set A pointer to the member function of Owner to use as a setter.
+         */
         template <typename Owner, typename V,
                   detail::mem_setter<Owner, std::remove_cvref_t<V>> Set = nullptr>
         class public_property
@@ -896,6 +943,15 @@ namespace mousebyte {
         };
 
 
+        /**
+         * @brief Exposes a property with a public getter and setter that
+         * uses a backing field.
+         *
+         * @tparam Owner The type that contains the property.
+         * @tparam V The value type.
+         * @tparam Get A pointer to the member function of Owner that gets the value.
+         * @tparam Set A pointer to the member function of Owner that sets the value.
+         */
         template <typename Owner, typename V,
                   detail::mem_getter<Owner, std::remove_cvref_t<V> const&> Get,
                   detail::mem_setter_backed<Owner, std::remove_cvref_t<V>> Set>
@@ -951,11 +1007,21 @@ namespace mousebyte {
                 }
 
         protected:
+            /**
+             * @brief Removes the binding from this property, if one exists.
+             */
             void unbind()
                 {
                 this->reset_binding();
                 }
 
+            /**
+             * @brief Binds this property to the value of another property.
+             *
+             * @param src The source property.
+             *
+             * @return A handle to the binding.
+             */
             template <typename PSrc>
             requires detail::PropertyConvertible<PSrc, my_type>
             std::shared_ptr<binding> bind(
@@ -965,6 +1031,17 @@ namespace mousebyte {
                 return this->bind_internal(&src);
                 }
 
+            /**
+             * @brief Binds this property to the value of another property
+             * using the given converter object.
+             *
+             * @param src The source property.
+             * @param converter The converter object. Must be a functor that accepts
+             * a const reference to the source's value type and returns the target's
+             * value type.
+             *
+             * @return A handle to the binding.
+             */
             template <typename PSrc, typename Converter>
             requires detail::ValidConverter<PSrc, my_type, Converter>
             std::shared_ptr<binding> bind(
@@ -1065,6 +1142,14 @@ namespace mousebyte {
         };
 
 
+        /**
+         * @brief Exposes a property with a public getter and a setter accessible only
+         * by Owner.
+         *
+         * @tparam Owner The type that contains the property.
+         * @tparam V The value type.
+         * @tparam Set A pointer to the member function of Owner to use as a setter.
+         */
         template <typename Owner, typename V,
                   detail::mem_setter<Owner, std::remove_cvref_t<V>> Set = nullptr>
         class readonly_property
@@ -1128,6 +1213,15 @@ namespace mousebyte {
         };
 
 
+        /**
+         * @brief Exposes a property with a public getter and a setter accessible only
+         * by Owner. Uses a backing field.
+         *
+         * @tparam Owner The type that contains the property.
+         * @tparam V The value type.
+         * @tparam Get A pointer to the member function of Owner that gets the value.
+         * @tparam Set A pointer to the member function of Owner that sets the value.
+         */
         template <typename Owner, typename V,
                   detail::mem_getter<Owner, std::remove_cvref_t<V> const&> Get,
                   detail::mem_setter_backed<Owner, std::remove_cvref_t<V>> Set>
