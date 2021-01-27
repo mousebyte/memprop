@@ -14,6 +14,9 @@ If you're using memprop as a subdirectory of your project, just add it to your `
 ```cmake
 option(MEMPROP_COMPILE_TESTS "" OFF)
 add_subdirectory(memprop)
+
+add_executable(MyExe main.cpp)
+target_link_libraries(MyExe PRIVATE Mousebyte::memprop)
 ```
 Otherwise, you can install it wherever you like.
 ```
