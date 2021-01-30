@@ -8,7 +8,7 @@
 #ifndef MB_MEMPROP_HPP
 #define MB_MEMPROP_HPP
 #include <type_traits>
-#include "signal_interface.hpp"
+#include <sigslot/signal.hpp>
 
 namespace mousebyte {
     namespace memprop {
@@ -236,6 +236,7 @@ namespace mousebyte {
             template <typename Owner, typename V, detail::mem_getter<Owner,
                                                                      V> Get>
             struct property_traits<computed_property<Owner, V, Get>> {
+                using owner_type      = Owner;
                 using property_type   = computed_property<Owner, V, Get>;
                 using value_type      = V;
                 using const_reference = V;
@@ -245,6 +246,7 @@ namespace mousebyte {
             template <typename Owner, typename V,
                       detail::mem_setter<Owner, std::remove_cvref_t<V>> Set>
             struct property_traits<public_property<Owner, V, Set>> {
+                using owner_type      = Owner;
                 using property_type   = public_property<Owner, V, Set>;
                 using value_type      = std::remove_cvref_t<V>;
                 using const_reference = value_type const&;
@@ -253,6 +255,7 @@ namespace mousebyte {
 
             template <typename Owner, typename V>
             struct property_traits<public_property<Owner, V, nullptr>> {
+                using owner_type      = Owner;
                 using property_type   = public_property<Owner, V, nullptr>;
                 using value_type      = std::remove_cvref_t<V>;
                 using const_reference = value_type const&;
@@ -262,6 +265,7 @@ namespace mousebyte {
             template <typename Owner, typename V,
                       detail::mem_setter<Owner, std::remove_cvref_t<V>> Set>
             struct property_traits<readonly_property<Owner, V, Set>> {
+                using owner_type      = Owner;
                 using property_type   = readonly_property<Owner, V, Set>;
                 using value_type      = std::remove_cvref_t<V>;
                 using const_reference = value_type const&;
@@ -270,6 +274,7 @@ namespace mousebyte {
 
             template <typename Owner, typename V>
             struct property_traits<readonly_property<Owner, V, nullptr>> {
+                using owner_type      = Owner;
                 using property_type   = readonly_property<Owner, V, nullptr>;
                 using value_type      = std::remove_cvref_t<V>;
                 using const_reference = value_type const&;
@@ -280,6 +285,7 @@ namespace mousebyte {
                       detail::mem_getter<Owner, std::remove_cvref_t<V> const&> Get,
                       detail::mem_setter_backed<Owner, std::remove_cvref_t<V>> Set>
             struct property_traits<backed_public_property<Owner, V, Get, Set>> {
+                using owner_type      = Owner;
                 using property_type   = backed_public_property<Owner, V, Get, Set>;
                 using value_type      = std::remove_cvref_t<V>;
                 using const_reference = value_type const&;
@@ -290,6 +296,7 @@ namespace mousebyte {
                       detail::mem_getter<Owner, std::remove_cvref_t<V> const&> Get,
                       detail::mem_setter_backed<Owner, std::remove_cvref_t<V>> Set>
             struct property_traits<backed_readonly_property<Owner, V, Get, Set>> {
+                using owner_type      = Owner;
                 using property_type   = backed_readonly_property<Owner, V, Get, Set>;
                 using value_type      = std::remove_cvref_t<V>;
                 using const_reference = value_type const&;
@@ -298,10 +305,14 @@ namespace mousebyte {
 
             namespace traits {
                 template <typename P>
+                using owner_type      =
+                    typename property_traits<P>::owner_type;
+                template <typename P>
                 using property_type   =
                     typename property_traits<P>::property_type;
                 template <typename P>
-                using value_type      = typename property_traits<P>::value_type;
+                using value_type      =
+                    typename property_traits<P>::value_type;
                 template <typename P>
                 using const_reference =
                     typename property_traits<P>::const_reference;
@@ -316,17 +327,52 @@ namespace mousebyte {
             concept PropertyConvertible = std::convertible_to<
                 traits::const_reference<PSrc>, traits::const_reference<PTarget>>;
             template <typename PSrc, typename PTarget, typename Converter>
-            concept ValidConverter      = requires(traits::const_reference<PSrc> v, Converter c)
-                {
+            concept ValidConverter      = requires(traits::const_reference<PSrc> v, Converter c) {
                     { c(v) }->std::convertible_to<traits::const_reference<PTarget>>;
                 };
 
             template <typename Prop>
             class gettable_prop {
+                using owner_type      = detail::traits::owner_type<Prop>;
+                owner_type* _owner;
+
             protected:
                 using const_reference = detail::traits::const_reference<Prop>;
-                virtual const_reference get() const            = 0;
-                gettable_prop() = default;
+
+                template <auto Pmf, typename ... Args>
+                requires requires(
+                    owner_type* p,
+                    Args&&...   args
+                    ) { ((*p).*Pmf)(std::forward<Args>(args)...); }
+                inline std::result_of_t<decltype(Pmf)(owner_type, Args&&...)>
+                call_owner_fn(
+                    Args&&... args
+                    )
+                    {
+                    return ((*_owner).*Pmf)(std::forward<Args>(args)...);
+                    }
+
+                template <auto Pmf, typename ... Args>
+                requires requires(
+                    owner_type const* p,
+                    Args&&...         args
+                    ) { ((*p).*Pmf)(std::forward<Args>(args)...); }
+                inline std::result_of_t<decltype(Pmf)(const owner_type, Args&&...)>
+                call_owner_fn(
+                    Args&&... args
+                    ) const
+                    {
+                    return ((*_owner).*Pmf)(std::forward<Args>(args)...);
+                    }
+
+                virtual const_reference get() const = 0;
+
+                gettable_prop(
+                    owner_type* owner
+                    )
+                    : _owner(owner)
+                    {
+                    }
 
             public:
                 gettable_prop(gettable_prop const&)            = delete;
@@ -538,7 +584,12 @@ namespace mousebyte {
 
                 using const_reference = detail::traits::const_reference<Prop>;
 
-                settable_prop() = default;
+                settable_prop(
+                    detail::traits::owner_type<Prop>* owner
+                    )
+                    : gettable_prop<Prop>(owner)
+                    {
+                    }
 
                 void invoke_changed(
                     const_reference v
@@ -560,7 +611,7 @@ namespace mousebyte {
                     }
 
             public:
-                signal_ix<settable_prop<Prop>, const_reference> Changed;
+                sigslot::signal_ix<settable_prop<Prop>, const_reference> Changed;
 
             private:
                 virtual bool do_set(const_reference) = 0;
@@ -634,6 +685,13 @@ namespace mousebyte {
                 std::shared_ptr<binding> _binding;
 
             protected:
+                core_binding_access(
+                    detail::traits::owner_type<Prop>* owner
+                    )
+                    : settable_prop<Prop>(owner)
+                    {
+                    }
+
                 template <typename PSrc>
                 std::shared_ptr<binding> bind_internal(
                     settable_prop<PSrc>* src
@@ -679,21 +737,19 @@ namespace mousebyte {
         template <typename Owner, typename V, detail::mem_getter<Owner, V> Get>
         class computed_property
             : public detail::gettable_prop<computed_property<Owner, V, Get>> {
-            Owner const* _owner;
-
         protected:
             using my_type = computed_property<Owner, V, Get>;
             using const_reference = detail::traits::const_reference<my_type>;
             const_reference get() const override
                 {
-                return (_owner->*Get)();
+                return this->template call_owner_fn<Get>();
                 }
 
         public:
             computed_property(
-                Owner const* owner
+                Owner* owner
                 )
-                : _owner(owner)
+                : detail::gettable_prop<my_type>(owner)
                 {
                 }
 
@@ -707,7 +763,15 @@ namespace mousebyte {
         template <typename Prop>
         class public_property_base
             : public detail::core_binding_access<Prop> {
-            using my_type         = Prop;
+            using my_type = Prop;
+        protected:
+            public_property_base(
+                detail::traits::owner_type<Prop>* owner
+                )
+                : detail::core_binding_access<Prop>(owner)
+                {
+                }
+
         public:
             using value_type      = detail::traits::value_type<my_type>;
             using const_reference = detail::traits::const_reference<my_type>;
@@ -893,7 +957,7 @@ namespace mousebyte {
             public_property(
                 Owner* owner
                 )
-                : _owner(owner)
+                : public_property_base<my_type>(owner)
                 {
                 }
 
@@ -901,7 +965,7 @@ namespace mousebyte {
                 Owner*          owner,
                 const_reference v
                 )
-                : _owner(owner)
+                : public_property_base<my_type>(owner)
                 , _value(v)
                 {
                 }
@@ -934,11 +998,10 @@ namespace mousebyte {
                     _value = v;
                     return true;
                     } else {
-                    return (_owner->*Set)(_value, v);
+                    return this->template call_owner_fn<Set>(_value, v);
                     }
                 }
 
-            Owner* _owner;
             value_type _value;
         };
 
@@ -965,7 +1028,7 @@ namespace mousebyte {
             backed_public_property(
                 Owner* owner
                 )
-                : _owner(owner)
+                : public_property_base<my_type>(owner)
                 {
                 }
 
@@ -980,7 +1043,7 @@ namespace mousebyte {
         protected:
             const_reference get() const override
                 {
-                return (_owner->*Get)();
+                return this->template call_owner_fn<Get>();
                 }
 
         private:
@@ -988,10 +1051,8 @@ namespace mousebyte {
                 const_reference v
                 ) override
                 {
-                return (_owner->*Set)(v);
+                return this->template call_owner_fn<Set>(v);
                 }
-
-            Owner* _owner;
         };
 
 
@@ -1007,6 +1068,13 @@ namespace mousebyte {
                 }
 
         protected:
+            readonly_property_base(
+                detail::traits::owner_type<Prop>* owner
+                )
+                : detail::core_binding_access<Prop>(owner)
+                {
+                }
+
             /**
              * @brief Removes the binding from this property, if one exists.
              */
@@ -1163,7 +1231,7 @@ namespace mousebyte {
             readonly_property(
                 Owner* owner
                 )
-                : _owner(owner)
+                : readonly_property_base<my_type>(owner)
                 {
                 }
 
@@ -1171,7 +1239,7 @@ namespace mousebyte {
                 Owner*          owner,
                 const_reference v
                 )
-                : _owner(owner)
+                : readonly_property_base<my_type>(owner)
                 , _value(v)
                 {
                 }
@@ -1204,11 +1272,10 @@ namespace mousebyte {
                     _value = v;
                     return true;
                     } else {
-                    return (_owner->*Set)(_value, v);
+                    return this->template call_owner_fn<Set>(_value, v);
                     }
                 }
 
-            Owner* _owner;
             value_type _value;
         };
 
@@ -1235,14 +1302,14 @@ namespace mousebyte {
             backed_readonly_property(
                 Owner* owner
                 )
-                : _owner(owner)
+                : readonly_property_base<my_type>(owner)
                 {
                 }
 
         protected:
             const_reference get() const override
                 {
-                return (_owner->*Get)();
+                return this->template call_owner_fn<Get>();
                 }
 
             my_type& operator=(
@@ -1258,10 +1325,8 @@ namespace mousebyte {
                 const_reference v
                 ) override
                 {
-                return (_owner->*Set)(v);
+                return this->template call_owner_fn<Set>(v);
                 }
-
-            Owner* _owner;
         };
         }
     }

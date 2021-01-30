@@ -4,7 +4,7 @@ project("memprop" VERSION 1.0.0 LANGUAGES CXX)
 option(SIGSLOT_COMPILE_EXAMPLES "" OFF)
 option(SIGSLOT_COMPILE_TESTS "" OFF)
 option(MEMPROP_COMPILE_TESTS "Compile tests" ON)
-add_subdirectory(lib/sigslot)
+add_subdirectory(lib/sigslot20)
 
 add_library(${PROJECT_NAME} INTERFACE)
 add_library(Mousebyte::memprop ALIAS ${PROJECT_NAME})
