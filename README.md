@@ -2,13 +2,13 @@
 Memprop is a member property implementation suitable for use in UI libraries. Features change notifications, access control, and bindings. Requires a compiler with C++20 Concepts support.
 
 ## Installation
-Memprop is a header only library. It depends on [palacaze/sigslot](https://github.com/palacaze/sigslot) for property change notifications. As long as you have `sigslot/signal.hpp` available in your project, all you need is the Memprop include directory.
+Memprop is a header only library. It depends on [mousebyte/sigslot20](https://github.com/mousebyte/sigslot20) for property change notifications. As long as you have `sigslot/signal.hpp` available in your project, all you need is the Memprop include directory.
 ### Install with CMake
 You can install Memprop either as a subdirectory/submodule of your project, or to the system using the install target.
 First, clone the Memprop repo using `git clone` or `git submodule add`. Then update memprop's submodules. If you're not interested in running the test cases, the only one you'll need is sigslot.
 ```
 cd memprop
-git submodule update --init ./lib/sigslot
+git submodule update --init ./lib/sigslot20
 ```
 If you're using memprop as a subdirectory of your project, just add it to your `CMakeLists.txt`:
 ```cmake
@@ -33,17 +33,17 @@ There are a number of different property types to choose from based on use case.
 class foo {
     bool set_StringProp(std::string& out, std::string const& in)
         {
-        out = in.substr(0, 32); //perform some custom processing or validation
-        return true;            //return false to suppress Changed signal
+        out = in.substr(0, 32); // perform some custom processing or validation
+        return true;            // return false to suppress Changed signal
         }
         
 public:
-    //Public property with default setter and getter
+    // Public property with default setter and getter
     memprop::public_property<foo, int> IntProp {this};
-    //Public property with custom setter
+    // Public property with custom setter
     memprop::public_property<foo, int, &foo::set_StringProp> StringProp;
     
-    foo() : StringProp(this, "bar") //Non-backed property constructors can accept an initial value
+    foo() : StringProp(this, "bar") // Non-backed property constructors can accept an initial value
         {
         }
 };
@@ -57,14 +57,14 @@ public:
     
     void bar()
         {
-        RoProp = 17; //Can be set from inside foo
+        RoProp = 17; // Can be set from inside foo
         }
 };
 
 void baz(foo& f)
     {
-    int i = f.RoProp; //Can read the value from outside
-    //f.RoProp = 22;    Error: produces an access violation
+    int i = f.RoProp; // Can read the value from outside
+    //f.RoProp = 22;     Error: produces an access violation
     }
 ```
 ### Backed properties
@@ -73,12 +73,12 @@ Both public and readonly properties have variants which use a backing field. The
 class foo {
     int _anInt;
     
-    int const& get_int() const  //Getter returns a const reference
+    int const& get_int() const  // Getter returns a const reference
         {
         return _anInt;
         }
         
-    bool set_int(int const& v)  //Setter for backed property takes a const reference
+    bool set_int(int const& v)  // Setter for backed property takes a const reference
         {
         if(v <= 100) {
             _anInt = v;
@@ -105,7 +105,7 @@ public:
 };
 ```
 ### Change notifications
-All property types except `computed_property` have a member signal, `Changed`, which is invoked each time the property's value is set from the property object. A const reference to the property's new value is passed to each slot. For more information on the signals used in this library, check out the [sigslot](https://github.com/palacaze/sigslot) repo.
+All property types except `computed_property` have a member signal, `Changed`, which is invoked each time the property's value is set from the property object. A const reference to the property's new value is passed to each slot. For more information on the signals used in this library, check out the [sigslot20](https://github.com/mousebyte/sigslot20) repo.
 ### Property binding
 A property can be bound to the value of another property with the `bind()` member function. Readonly properties can only be bound to the value of another property from within their owner class. The only property type which does not support binding is `computed_property`.
 
@@ -137,22 +137,22 @@ void do_some_binding()
     foo f;
     bar b;
     
-    //FooIntProp will now be set whenever BarReadonlyIntProp is set
+    // FooIntProp will now be set whenever BarReadonlyIntProp is set
     auto binding = f.FooIntProp.bind(b.BarReadonlyIntProp);
     
     //b.BarReadonlyIntProp.bind(f.FooIntProp);  Error: can't bind to readonly property outside of bar
     
-    //Bindings can be managed through the handle returned by bind()
+    // Bindings can be managed through the handle returned by bind()
     binding->disconnect();
     
-    //Bindings can be bi-directional, setting either property will update the other
+    // Bindings can be bi-directional, setting either property will update the other
     f.FooIntProp.bind(b.BarIntProp);
     b.BarIntProp.bind(f.FooIntProp);
     
-    //Bindings can be unset through the property
+    // Bindings can be unset through the property
     f.FooIntProp.unbind();
     
-    //a custom converter can be passed to modify the incoming value
+    // a custom converter can be passed to modify the incoming value
     f.FooStringProp.bind(b.BarIntProp, custom_converter{});
     }
 ```
