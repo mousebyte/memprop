@@ -95,40 +95,20 @@ namespace mousebyte {
                 t1 + t2;
                 };
             template <typename T1, typename T2>
-            concept AddAssignable        = requires(T1 t1, T2 t2) {
-                t1 += t2;
-                };
-            template <typename T1, typename T2>
             concept Subtractable         = requires(T1 t1, T2 t2) {
                 t1 - t2;
-                };
-            template <typename T1, typename T2>
-            concept SubtractAssignable   = requires(T1 t1, T2 t2) {
-                t1 -= t2;
                 };
             template <typename T1, typename T2>
             concept Multipliable         = requires(T1 t1, T2 t2) {
                 t1 * t2;
                 };
             template <typename T1, typename T2>
-            concept MultAssignable       = requires(T1 t1, T2 t2) {
-                t1 *= t2;
-                };
-            template <typename T1, typename T2>
             concept Divisible            = requires(T1 t1, T2 t2) {
                 t1 / t2;
                 };
             template <typename T1, typename T2>
-            concept DivAssignable        = requires(T1 t1, T2 t2) {
-                t1 /= t2;
-                };
-            template <typename T1, typename T2>
             concept HasModulo            = requires(T1 t1, T2 t2) {
                 t1 % t2;
-                };
-            template <typename T1, typename T2>
-            concept HasModuloAssign      = requires(T1 t1, T2 t2) {
-                t1 %= t2;
                 };
             template <typename T>
             concept HasBitwiseNot        = requires(T t) {
@@ -139,40 +119,20 @@ namespace mousebyte {
                 t1 & t2;
                 };
             template <typename T1, typename T2>
-            concept HasBitwiseAndAssign  = requires(T1 t1, T2 t2) {
-                t1 &= t2;
-                };
-            template <typename T1, typename T2>
             concept HasBitwiseOr         = requires(T1 t1, T2 t2) {
                 t1 | t2;
-                };
-            template <typename T1, typename T2>
-            concept HasBitwiseOrAssign   = requires(T1 t1, T2 t2) {
-                t1 |= t2;
                 };
             template <typename T1, typename T2>
             concept HasBitwiseXor        = requires(T1 t1, T2 t2) {
                 t1 ^ t2;
                 };
             template <typename T1, typename T2>
-            concept HasBitwiseXorAssign  = requires(T1 t1, T2 t2) {
-                t1 ^= t2;
-                };
-            template <typename T1, typename T2>
             concept HasLeftShift         = requires(T1 t1, T2 t2) {
                 t1 << t2;
                 };
             template <typename T1, typename T2>
-            concept HasLeftShiftAssign   = requires(T1 t1, T2 t2) {
-                t1 <<= t2;
-                };
-            template <typename T1, typename T2>
             concept HasRightShift        = requires(T1 t1, T2 t2) {
                 t1 >> t2;
-                };
-            template <typename T1, typename T2>
-            concept HasRightShiftAssign  = requires(T1 t1, T2 t2) {
-                t1 >>= t2;
                 };
             template <typename T>
             concept PreIncrementable     = requires(T t) {
